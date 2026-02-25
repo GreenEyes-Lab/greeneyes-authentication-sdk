@@ -1,5 +1,6 @@
 import AuthenticationServices
 import Foundation
+import UIKit
 
 @objc public class AppleAuthManager: NSObject {
 
