@@ -1,0 +1,15 @@
+{
+  "name": "com.greeneyes.auth",
+  "version": "0.1.0",
+  "displayName": "GreenEyes Authentication SDK",
+  "description": "Unity SDK for social login authentication. Provides a unified interface for multiple auth providers (Apple, Google, Kakao, etc.) on iOS and Android.",
+  "unity": "6000.3",
+  "author": {
+    "name": "GreenEyes"
+  },
+  "keywords": [
+    "authentication",
+    "social login",
+    "apple sign in"
+  ]
+}
