@@ -77,7 +77,9 @@ greeneyes-authentication-sdk/
 │       ├── Apple/
 │       │   ├── AppleAuthProvider.cs       # C# 래퍼
 │       │   ├── Plugins/iOS/
-│       │   │   └── AppleAuthNative.mm     # iOS 네이티브 플러그인 (ObjC)
+│       │   │   ├── AppleAuthNative.h      # C 함수 선언
+│       │   │   ├── AppleAuthNative.mm     # ObjC 브리지 (DllImport 진입점)
+│       │   │   └── AppleAuthManager.swift # Swift 로직 (AuthenticationServices)
 │       │   └── Plugins/Android/
 │       │       └── AppleAuthAndroid.java  # Android WebView OAuth
 │       ├── Google/                # TODO

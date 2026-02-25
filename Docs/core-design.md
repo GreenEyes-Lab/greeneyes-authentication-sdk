@@ -34,7 +34,10 @@ Runtime/
         ├── AppleAuthProvider.Unsupported.cs  # 에디터/기타 stub
         ├── AppleAuthNativeBridge.cs          # UnitySendMessage 수신용 MonoBehaviour
         └── Plugins/
-            ├── iOS/AppleAuthNative.mm
+            ├── iOS/
+            │   ├── AppleAuthNative.h       # C 함수 선언
+            │   ├── AppleAuthNative.mm      # ObjC 브리지 (DllImport 진입점)
+            │   └── AppleAuthManager.swift  # Swift 로직 (AuthenticationServices)
             └── Android/AppleAuthAndroid.java
 
 Tests/
@@ -147,12 +150,29 @@ AppleAuthProvider.Unsupported.cs  → #else: NotSupported 에러 반환
 해결책: `GreenEyesAuthInitializer`에서 `HideFlags.HideAndDontSave` GameObject를 생성하고 `AppleAuthNativeBridge` MonoBehaviour를 부착한다. 이 브리지가 네이티브 메시지를 받아 `AppleAuthProvider`로 전달한다.
 
 ```
-네이티브 (ObjC/Java)
-    → UnitySendMessage("AppleAuthNativeBridge", "OnSuccess", json)
-    → AppleAuthNativeBridge.OnSuccess(json)
-    → AppleAuthProvider.OnNativeSuccess(json)
+네이티브 흐름 (iOS):
+
+Unity C# (DllImport)
+    → AppleAuthNative.mm (ObjC 브리지, C 함수)
+    → AppleAuthManager.swift (@objc class, 실제 로직)
+    → ASAuthorizationController (AuthenticationServices)
+    → AppleAuthManager.swift (delegate 콜백)
+    → ObjC 브리지의 onSuccess/onFailure 블록
+    → UnitySendMessage("GreenEyes_AppleAuthBridge", "OnSuccess/OnFailure", payload)
+    → AppleAuthNativeBridge (MonoBehaviour)
+    → AppleAuthProvider.OnNativeSuccess/Failure (C#)
     → 클라이언트 콜백 호출
 ```
+
+**iOS 네이티브 레이어 역할 분담:**
+
+| 파일 | 언어 | 역할 |
+|---|---|---|
+| `AppleAuthNative.h` | ObjC | C 함수 시그니처 선언 |
+| `AppleAuthNative.mm` | ObjC | Unity `DllImport` 진입점, Swift 호출, `UnitySendMessage` 처리 |
+| `AppleAuthManager.swift` | Swift | `AuthenticationServices` 로직, delegate 구현 |
+
+ObjC `.mm` 파일이 `UnitySendMessage`를 담당하는 이유: Swift에서는 Unity 런타임 C 함수를 직접 호출하기 어렵기 때문에, 결과는 ObjC 블록 콜백을 통해 `.mm`으로 돌아온 뒤 `UnitySendMessage`를 호출한다.
 
 ### 7. 어셈블리 구성
 
