@@ -2,6 +2,9 @@
 #
 # Get latest from https://github.com/github/gitignore/blob/main/Unity.gitignore
 #
+
+# Demo project (folder ends with ~ so Unity ignores it, but git should track it)
+!Demo~/
 .utmp/
 /[Ll]ibrary/
 /[Tt]emp/

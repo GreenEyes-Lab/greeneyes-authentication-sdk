@@ -1,0 +1,25 @@
+# Unity generated
+/[Ll]ibrary/
+/[Ll]ibrary.meta
+/[Tt]emp/
+/[Tt]emp.meta
+/[Oo]bj/
+/[Oo]bj.meta
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Ll]ogs.meta
+/[Uu]ser[Ss]ettings/
+/[Uu]ser[Ss]ettings.meta
+
+# IDE
+.vs/
+*.csproj
+*.sln
+*.slnx
+*.slnx.meta
+*.user
+*.suo
+
+# OS
+.DS_Store

@@ -1,0 +1,21 @@
+{
+    "name": "GreenEyes.Auth.Tests",
+    "rootNamespace": "GreenEyes.Auth.Tests",
+    "references": [
+        "GreenEyes.Auth"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false,
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ]
+}
