@@ -174,7 +174,42 @@ Unity C# (DllImport)
 
 ObjC `.mm` 파일이 `UnitySendMessage`를 담당하는 이유: Swift에서는 Unity 런타임 C 함수를 직접 호출하기 어렵기 때문에, 결과는 ObjC 블록 콜백을 통해 `.mm`으로 돌아온 뒤 `UnitySendMessage`를 호출한다.
 
-### 7. 어셈블리 구성
+### 7. Android Apple Sign In 설계
+
+iOS와 달리 Android에는 Apple의 네이티브 SDK가 없어 Web OAuth 방식을 사용한다.
+
+**흐름:**
+```
+Unity C# (SignIn)
+    → AppleAuthProvider.Android.cs: Apple OAuth URL 빌드 + WebView 액티비티 시작
+    → AppleAuthWebViewActivity.java: WebView로 Apple 로그인 페이지 표시
+    → 사용자 로그인 완료
+    → Apple이 redirect_uri로 리다이렉트 (response_mode=fragment)
+    → shouldOverrideUrlLoading으로 URL 인터셉트
+    → fragment에서 code, id_token, user(최초만) 파싱
+    → id_token JWT의 sub 클레임에서 userId 추출
+    → UnitySendMessage → AppleAuthNativeBridge → 클라이언트 콜백
+```
+
+**`response_mode=fragment` 채택 이유:**
+Apple은 `form_post`(POST)와 `fragment` 두 가지 response_mode를 지원한다.
+`form_post`는 POST body 인터셉트가 필요해 복잡하고, `fragment`는 URL에 토큰이 포함되어
+WebView의 `shouldOverrideUrlLoading`으로 단순하게 인터셉트할 수 있다.
+
+**Redirect URL에 대한 중요 사항:**
+- Redirect URL은 자동 생성되지 않는다. 앱마다 고유하게 설정해야 한다.
+- Apple Developer Console에 HTTPS URL로 사전 등록이 필요하다.
+- 실제 서버(웹 엔드포인트)는 필요 없다. WebView가 해당 URL로의 이동을 감지하는 순간 인터셉트하므로 서버 응답 없이 토큰 추출이 가능하다.
+- SDK가 여러 프로젝트에서 쓰이므로, Service ID와 Redirect URL은 하드코딩하지 않고 `AppleAuthAndroidConfig`로 주입받는다.
+
+**iOS와 Android 초기화 차이:**
+
+| | iOS | Android |
+|---|---|---|
+| 초기화 방식 | `GreenEyesAuthInitializer`가 자동 등록 | 클라이언트가 `AppleAuthAndroidConfig`와 함께 수동 등록 |
+| 이유 | Bundle ID를 자동 사용, 설정 불필요 | Service ID·Redirect URL이 앱마다 다름 |
+
+### 8. 어셈블리 구성
 
 현재 규모에서는 Runtime 단일 asmdef가 적합하다. 프로바이더가 늘어날 때 분리를 고려한다.
 

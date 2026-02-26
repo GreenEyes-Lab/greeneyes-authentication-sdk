@@ -29,7 +29,7 @@ SDK는 소셜 로그인을 처리하고 결과를 클라이언트에 반환하�
 
 | 프로바이더 | iOS | Android | 상태 |
 |---|---|---|---|
-| Apple | 네이티브 (`AuthenticationServices`) | Web OAuth (WebView) | 구현 예정 |
+| Apple | 네이티브 (`AuthenticationServices`) | Web OAuth (WebView) | ✅ 구현 완료 |
 | Google | - | - | TODO |
 | Kakao | - | - | TODO |
 | Naver | - | - | TODO |
@@ -50,18 +50,42 @@ SDK는 소셜 로그인을 처리하고 결과를 클라이언트에 반환하�
 
 ## 사용 예시
 
+### iOS
+iOS는 SDK가 자동으로 초기화되므로 별도 설정 없이 바로 호출할 수 있다.
+
 ```csharp
-AuthManager.Instance.SignIn(AuthProvider.Apple, (result, error) => {
+AuthManager.Instance.SignIn(AuthProviderType.Apple, (result, error) => {
     if (error != null) {
-        // 로그인 실패 처리
+        Debug.LogError(error);
         return;
     }
-
     // 클라이언트에서 백엔드로 전달
-    string identityToken = result.IdentityToken;
+    string identityToken    = result.IdentityToken;
     string authorizationCode = result.AuthorizationCode;
 });
 ```
+
+### Android
+Android는 Web OAuth 방식으로 동작하며, 앱별 설정을 직접 주입해야 한다.
+
+```csharp
+// 앱 초기화 시점에 한 번만 호출
+var config = new AppleAuthAndroidConfig(
+    serviceId:   "com.example.service",          // Apple Developer Console의 Services ID
+    redirectUrl: "https://example.com/apple/callback"  // Apple에 등록한 Redirect URL
+);
+AuthManager.Instance.RegisterProvider(AuthProviderType.Apple, new AppleAuthProvider(config));
+
+// 이후 사용 방법은 iOS와 동일
+AuthManager.Instance.SignIn(AuthProviderType.Apple, (result, error) => { ... });
+```
+
+#### Android 사전 준비
+1. [Apple Developer Console](https://developer.apple.com/account/)에서 **Services ID** 생성
+2. Services ID의 **Sign In with Apple** 활성화 후 Redirect URL 등록
+   - Redirect URL은 HTTPS여야 하며, 실제 서버가 없어도 됨 (WebView가 인터셉트)
+   - 예) `https://example.com/apple/callback`
+3. 위 두 값을 `AppleAuthAndroidConfig`에 전달
 
 ## 프로젝트 구조
 
@@ -81,7 +105,8 @@ greeneyes-authentication-sdk/
 │       │   │   ├── AppleAuthNative.mm     # ObjC 브리지 (DllImport 진입점)
 │       │   │   └── AppleAuthManager.swift # Swift 로직 (AuthenticationServices)
 │       │   └── Plugins/Android/
-│       │       └── AppleAuthAndroid.java  # Android WebView OAuth
+│       │       ├── AppleAuthWebViewActivity.java  # Android WebView OAuth 액티비티
+│       │       └── AndroidManifest.xml            # 액티비티 선언
 │       ├── Google/                # TODO
 │       └── Kakao/                 # TODO
 └── Tests/
