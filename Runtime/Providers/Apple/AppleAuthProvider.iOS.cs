@@ -1,5 +1,6 @@
 #if UNITY_IOS
 
+using System;
 using System.Runtime.InteropServices;
 
 namespace GreenEyes.Auth
@@ -9,9 +10,22 @@ namespace GreenEyes.Auth
         [DllImport("__Internal")]
         private static extern void _GreenEyes_Apple_SignIn(string bridgeObjectName);
 
+        [DllImport("__Internal")]
+        private static extern void _GreenEyes_Apple_GetCredentialState(string userId, string bridgeObjectName);
+
         private void SignInInternal()
         {
             _GreenEyes_Apple_SignIn(AppleAuthNativeBridge.GameObjectName);
+        }
+
+        private void SignOutInternal(Action<AuthError> callback)
+        {
+            callback?.Invoke(null);
+        }
+
+        private void GetCredentialStateInternal(string userId)
+        {
+            _GreenEyes_Apple_GetCredentialState(userId, AppleAuthNativeBridge.GameObjectName);
         }
 
         private AuthResult ParseResult(string json)

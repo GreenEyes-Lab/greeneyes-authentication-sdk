@@ -46,6 +46,20 @@ namespace GreenEyes.Auth
             activity.Call("startActivity", intent);
         }
 
+        private void SignOutInternal(Action<AuthError> callback)
+        {
+            callback?.Invoke(null);
+        }
+
+        private void GetCredentialStateInternal(string userId)
+        {
+            var cb = _pendingCredentialStateCallback;
+            _pendingCredentialStateCallback = null;
+            cb?.Invoke(default, new AuthError(
+                AuthErrorCode.NotSupported,
+                "GetCredentialState is not supported on Android."));
+        }
+
         private string BuildAuthUrl()
         {
             var encodedRedirect = Uri.EscapeDataString(_androidConfig.RedirectUrl);

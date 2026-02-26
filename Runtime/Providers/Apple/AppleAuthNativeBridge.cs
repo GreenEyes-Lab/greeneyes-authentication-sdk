@@ -15,5 +15,11 @@ namespace GreenEyes.Auth
 
         // Called by native: UnitySendMessage(GameObjectName, "OnFailure", errorPayload)
         private void OnFailure(string errorPayload) => Provider?.OnNativeFailure(errorPayload);
+
+        // Called by native: UnitySendMessage(GameObjectName, "OnCredentialState", statePayload)
+        private void OnCredentialState(string statePayload) => Provider?.OnCredentialStateReceived(statePayload);
+
+        // Called by native: UnitySendMessage(GameObjectName, "OnCredentialStateFailure", errorPayload)
+        private void OnCredentialStateFailure(string errorPayload) => Provider?.OnCredentialStateFailure(errorPayload);
     }
 }

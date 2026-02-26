@@ -27,4 +27,18 @@ void _GreenEyes_Apple_SignIn(const char* callbackObjectName) {
     ];
 }
 
+void _GreenEyes_Apple_GetCredentialState(const char* userId, const char* callbackObjectName) {
+    NSString* userIdStr = [NSString stringWithUTF8String:userId];
+
+    [[AppleAuthManager shared]
+        getCredentialStateForUserId:userIdStr
+        onResult:^(NSString* state) {
+            UnitySendMessage(callbackObjectName, "OnCredentialState", [state UTF8String]);
+        }
+        onFailure:^(NSString* errorCode) {
+            UnitySendMessage(callbackObjectName, "OnCredentialStateFailure", [errorCode UTF8String]);
+        }
+    ];
+}
+
 } // extern "C"

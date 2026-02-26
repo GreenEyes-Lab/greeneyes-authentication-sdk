@@ -38,5 +38,37 @@ namespace GreenEyes.Auth
 
             provider.SignIn(callback);
         }
+
+        public void SignOut(AuthProviderType type, Action<AuthError> callback)
+        {
+            if (callback == null)
+                throw new ArgumentNullException(nameof(callback));
+
+            if (!_providers.TryGetValue(type, out var provider))
+            {
+                callback.Invoke(new AuthError(
+                    AuthErrorCode.NotSupported,
+                    $"Provider '{type}' is not registered."));
+                return;
+            }
+
+            provider.SignOut(callback);
+        }
+
+        public void GetCredentialState(AuthProviderType type, string userId, Action<CredentialState, AuthError> callback)
+        {
+            if (callback == null)
+                throw new ArgumentNullException(nameof(callback));
+
+            if (!_providers.TryGetValue(type, out var provider))
+            {
+                callback.Invoke(default, new AuthError(
+                    AuthErrorCode.NotSupported,
+                    $"Provider '{type}' is not registered."));
+                return;
+            }
+
+            provider.GetCredentialState(userId, callback);
+        }
     }
 }

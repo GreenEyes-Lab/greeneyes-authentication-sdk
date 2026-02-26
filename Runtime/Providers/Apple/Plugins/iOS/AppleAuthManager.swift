@@ -24,6 +24,27 @@ import UIKit
         }
     }
 
+    @objc public func getCredentialState(
+        forUserId userId: String,
+        onResult: @escaping (String) -> Void,
+        onFailure: @escaping (String) -> Void
+    ) {
+        let provider = ASAuthorizationAppleIDProvider()
+        provider.getCredentialState(forUserID: userId) { state, error in
+            if let error = error {
+                onFailure("\((error as NSError).code)")
+                return
+            }
+            switch state {
+            case .authorized:   onResult("authorized")
+            case .revoked:      onResult("revoked")
+            case .notFound:     onResult("notFound")
+            case .transferred:  onResult("transferred")
+            @unknown default:   onFailure("unknown")
+            }
+        }
+    }
+
     private func performSignIn() {
         let provider = ASAuthorizationAppleIDProvider()
         let request = provider.createRequest()
