@@ -31,7 +31,7 @@ Runtime/
       Plugins/iOS/AppleAuthNative.h      # C 함수 선언
       Plugins/iOS/AppleAuthNative.mm    # ObjC 브리지 (DllImport 진입점, Swift 호출)
       Plugins/iOS/AppleAuthManager.swift # Swift 로직 (AuthenticationServices)
-      Plugins/Android/AppleAuthAndroid.java  # Web OAuth (WebView)
+      Plugins/Android/AppleAuthWebViewActivity.kt  # Web OAuth (WebView)
 ```
 
 ### AuthResult 주의사항

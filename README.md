@@ -105,7 +105,7 @@ greeneyes-authentication-sdk/
 │       │   │   ├── AppleAuthNative.mm     # ObjC 브리지 (DllImport 진입점)
 │       │   │   └── AppleAuthManager.swift # Swift 로직 (AuthenticationServices)
 │       │   └── Plugins/Android/
-│       │       ├── AppleAuthWebViewActivity.java  # Android WebView OAuth 액티비티
+│       │       ├── AppleAuthWebViewActivity.kt    # Android WebView OAuth 액티비티
 │       │       └── AndroidManifest.xml            # 액티비티 선언
 │       ├── Google/                # TODO
 │       └── Kakao/                 # TODO

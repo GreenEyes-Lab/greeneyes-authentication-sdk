@@ -38,7 +38,7 @@ Runtime/
             │   ├── AppleAuthNative.h       # C 함수 선언
             │   ├── AppleAuthNative.mm      # ObjC 브리지 (DllImport 진입점)
             │   └── AppleAuthManager.swift  # Swift 로직 (AuthenticationServices)
-            └── Android/AppleAuthAndroid.java
+            └── Android/AppleAuthWebViewActivity.kt
 
 Tests/
 ├── Runtime/
@@ -182,7 +182,7 @@ iOS와 달리 Android에는 Apple의 네이티브 SDK가 없어 Web OAuth 방식
 ```
 Unity C# (SignIn)
     → AppleAuthProvider.Android.cs: Apple OAuth URL 빌드 + WebView 액티비티 시작
-    → AppleAuthWebViewActivity.java: WebView로 Apple 로그인 페이지 표시
+    → AppleAuthWebViewActivity.kt: WebView로 Apple 로그인 페이지 표시
     → 사용자 로그인 완료
     → Apple이 redirect_uri로 리다이렉트 (response_mode=fragment)
     → shouldOverrideUrlLoading으로 URL 인터셉트
