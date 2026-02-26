@@ -218,7 +218,145 @@ WebView의 `shouldOverrideUrlLoading`으로 단순하게 인터셉트할 수 있
 
 ---
 
-## AuthResult 필드
+## 계정 관리 기능 설계 (SignOut · GetCredentialState · 회원탈퇴)
+
+### 기능 범위 결정
+
+| 기능 | SDK 담당 | 비고 |
+|---|---|---|
+| 로그인 | ✅ | `SignIn` |
+| 로그아웃 | ✅ | `SignOut` — 로컬 상태 초기화 |
+| Credential 상태 조회 | ✅ | `GetCredentialState` — iOS 전용 실질 동작 |
+| 회원탈퇴 (Token Revoke) | ❌ | 서버 경유 필요 → SDK 범위 밖 |
+
+---
+
+### 1. SignOut 설계
+
+Apple에는 네이티브 sign-out API가 없다. SDK는 토큰을 내부에 저장하지 않는 stateless 설계이므로 `SignOut`은 **pending callback 초기화 + 즉시 성공 콜백**이 전부다. 클라이언트가 보관 중인 토큰/세션 삭제는 클라이언트 책임이다.
+
+```csharp
+// API
+AuthManager.Instance.SignOut(AuthProviderType.Apple, error => {
+    if (error != null) { ... }
+    // 클라이언트에서 저장된 토큰 삭제
+});
+```
+
+| 플랫폼 | 구현 |
+|---|---|
+| iOS | no-op → 즉시 성공 콜백 |
+| Android | no-op → 즉시 성공 콜백 |
+| Unsupported | 즉시 성공 콜백 |
+
+콜백 시그니처: `Action<AuthError>` — 성공 시 `error = null`.
+
+---
+
+### 2. GetCredentialState 설계
+
+앱 재시작 시 저장된 `userId`가 여전히 유효한지 확인하는 API. **iOS 전용 실질 동작**이며 Android는 `NotSupported` 에러를 반환한다.
+
+```csharp
+// API
+AuthManager.Instance.GetCredentialState(
+    AuthProviderType.Apple,
+    savedUserId,
+    (state, error) => {
+        if (error != null) { ... }
+        switch (state) {
+            case CredentialState.Authorized: // 자동 로그인 진행
+            case CredentialState.Revoked:    // 재로그인 요청
+            case CredentialState.NotFound:   // 최초 로그인 화면
+        }
+    });
+```
+
+**새 타입: `CredentialState` 열거형**
+
+```csharp
+public enum CredentialState
+{
+    Authorized,   // Apple credential 유효
+    Revoked,      // 사용자가 앱 연동 해제
+    NotFound,     // 해당 userId로 Sign in with Apple 기록 없음
+    Transferred   // 앱이 다른 팀으로 이전됨 (iOS 전용)
+}
+```
+
+| 플랫폼 | 구현 |
+|---|---|
+| iOS | `ASAuthorizationAppleIDProvider.getCredentialState(forUserID:)` 네이티브 호출 |
+| Android | `NotSupported` 에러 반환 |
+| Unsupported | `NotSupported` 에러 반환 |
+
+iOS 네이티브 흐름:
+```
+C# (DllImport)
+    → AppleAuthNative.mm (C 함수 _GreenEyes_Apple_GetCredentialState)
+    → AppleAuthManager.swift (getCredentialState)
+    → ASAuthorizationAppleIDProvider.getCredentialState(forUserID:)
+    → UnitySendMessage("GreenEyes_AppleAuthBridge", "OnCredentialState", "authorized|revoked|notFound|transferred")
+    → AppleAuthNativeBridge → AppleAuthProvider → 클라이언트 콜백
+```
+
+---
+
+### 3. 회원탈퇴 (Token Revoke) — SDK 범위 밖
+
+Apple은 앱 내 계정 삭제 기능을 App Store 심사 정책(Guideline 5.1.1(v))으로 **의무화**한다.
+
+Revoke는 Apple 서버 API(`https://appleid.apple.com/auth/revoke`)를 호출해야 하며, 이때 `client_secret`(앱의 ES256 개인키로 서명한 JWT)이 필요하다. 개인키를 클라이언트에 포함하면 보안 위험이 있으므로 **서버 경유가 필수**다.
+
+```
+클라이언트 (Unity)
+    → GreenEyes 백엔드 (회원 탈퇴 API)
+        → Apple /auth/revoke (client_secret + refresh_token)
+```
+
+SDK는 이 흐름에 관여하지 않는다. 클라이언트가 GreenEyes 백엔드의 탈퇴 API를 직접 호출하면 된다.
+
+---
+
+### 4. API 변경 사항 요약
+
+**`IAuthProvider` 인터페이스 확장**
+
+```csharp
+public interface IAuthProvider
+{
+    void SignIn(Action<AuthResult, AuthError> callback);
+    void SignOut(Action<AuthError> callback);
+    void GetCredentialState(string userId, Action<CredentialState, AuthError> callback);
+}
+```
+
+**`AuthManager` 공개 API 추가**
+
+```csharp
+void SignOut(AuthProviderType type, Action<AuthError> callback);
+void GetCredentialState(AuthProviderType type, string userId, Action<CredentialState, AuthError> callback);
+```
+
+---
+
+### 5. 파일 변경 계획
+
+| 파일 | 변경 내용 |
+|---|---|
+| `Core/IAuthProvider.cs` | `SignOut`, `GetCredentialState` 메서드 추가 |
+| `Core/AuthManager.cs` | `SignOut`, `GetCredentialState` 공개 메서드 추가 |
+| `Core/CredentialState.cs` | 새 열거형 추가 |
+| `Apple/AppleAuthProvider.cs` | 공통: `SignOut`, `OnCredentialStateReceived` |
+| `Apple/AppleAuthProvider.iOS.cs` | `SignOutInternal` (no-op), `GetCredentialStateInternal` (네이티브 호출) |
+| `Apple/AppleAuthProvider.Android.cs` | `SignOutInternal` (no-op), `GetCredentialStateInternal` (NotSupported) |
+| `Apple/AppleAuthProvider.Unsupported.cs` | 둘 다 즉시 콜백 |
+| `Apple/AppleAuthNativeBridge.cs` | `OnCredentialState` 수신 메서드 추가 |
+| `Plugins/iOS/AppleAuthNative.h` | `_GreenEyes_Apple_GetCredentialState` 선언 추가 |
+| `Plugins/iOS/AppleAuthNative.mm` | C 함수 브리지 추가 |
+| `Plugins/iOS/AppleAuthManager.swift` | `getCredentialState` 구현 추가 |
+
+---
 
 | 필드 | 타입 | 제공 시점 | 용도 |
 |---|---|---|---|

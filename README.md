@@ -87,6 +87,49 @@ AuthManager.Instance.SignIn(AuthProviderType.Apple, (result, error) => { ... });
    - 예) `https://example.com/apple/callback`
 3. 위 두 값을 `AppleAuthAndroidConfig`에 전달
 
+### 로그아웃
+
+```csharp
+AuthManager.Instance.SignOut(AuthProviderType.Apple, error => {
+    if (error != null) {
+        Debug.LogError(error);
+        return;
+    }
+    // 클라이언트에서 저장된 토큰/세션 삭제
+});
+```
+
+> Apple은 네이티브 sign-out API를 제공하지 않는다. `SignOut`은 SDK 내부 상태를 초기화하며, 클라이언트가 보관 중인 토큰 삭제는 클라이언트 책임이다.
+
+### Credential 상태 조회 (iOS 전용)
+
+앱 재시작 시 저장된 `UserId`가 여전히 유효한지 확인한다. **iOS에서만 실질 동작**하며 Android는 `NotSupported` 에러를 반환한다.
+
+```csharp
+AuthManager.Instance.GetCredentialState(
+    AuthProviderType.Apple,
+    savedUserId,
+    (state, error) => {
+        if (error != null) {
+            Debug.LogError(error);
+            return;
+        }
+        switch (state) {
+            case CredentialState.Authorized:  // 자동 로그인 진행
+            case CredentialState.Revoked:     // 재로그인 요청
+            case CredentialState.NotFound:    // 최초 로그인 화면으로
+        }
+    });
+```
+
+### 회원탈퇴
+
+Apple은 앱 내 계정 삭제 기능을 App Store 심사 정책으로 의무화한다. 단, Revoke는 서버 측 `client_secret`이 필요하므로 **SDK가 직접 처리하지 않는다.**
+
+```
+클라이언트 (Unity) → GreenEyes 백엔드 (탈퇴 API) → Apple /auth/revoke
+```
+
 ## 프로젝트 구조
 
 ```
